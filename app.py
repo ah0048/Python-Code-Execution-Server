@@ -1,6 +1,6 @@
 import subprocess
 import psutil
-import os
+import threading
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
@@ -8,7 +8,8 @@ app = Flask(__name__)
 TIMEOUT = 2  # Time limit in seconds
 MEMORY_LIMIT_MB = 100  # Memory limit in MB
 
-def enforce_memory_limit(proc):
+
+def monitor_memory(proc, memory_error_flag):
     """Monitor memory usage and terminate the process if it exceeds the limit."""
     try:
         process = psutil.Process(proc.pid)
@@ -16,10 +17,10 @@ def enforce_memory_limit(proc):
             mem_usage = process.memory_info().rss / (1024 * 1024)  # Convert to MB
             if mem_usage > MEMORY_LIMIT_MB:
                 proc.kill()
-                return "Memory limit exceeded"
+                memory_error_flag["error"] = "Memory limit exceeded"
+                break
     except psutil.NoSuchProcess:
         pass  # Process already terminated
-    return None
 
 
 @app.route('/execute', methods=['POST'])
@@ -49,25 +50,28 @@ def execute_code():
             text=True
         )
 
-        # Monitor memory usage in a separate thread
-        memory_error = enforce_memory_limit(process)
+        # Memory monitoring in a separate thread
+        memory_error_flag = {"error": None}
+        memory_thread = threading.Thread(target=monitor_memory, args=(process, memory_error_flag))
+        memory_thread.start()
 
         # Wait for the process to complete or timeout
         try:
             stdout, stderr = process.communicate(input=code, timeout=TIMEOUT)
         except subprocess.TimeoutExpired:
             process.kill()
-            return jsonify({"error": "Execution timeout"}), 500
+            return jsonify({"error": "execution timeout"}), 500
 
-        # Handle memory limit exceeded
-        if memory_error:
-            return jsonify({"error": memory_error}), 500
+        # Join the memory monitoring thread
+        memory_thread.join()
 
+        # Check for memory limit errors
+        if memory_error_flag["error"]:
+            return jsonify({"error": memory_error_flag["error"]}), 500
+
+        # Handle output
         if stdout and stderr:
-            return jsonify({
-                "stdout": stdout,
-                "stderr": stderr
-            })
+            return jsonify({"stdout": stdout, "stderr": stderr})
         elif stdout:
             return jsonify({"stdout": stdout})
         elif stderr:
@@ -75,8 +79,9 @@ def execute_code():
         else:
             return jsonify({})
 
-    except Exception:
+    except Exception as e:
         return jsonify({"error": "Internal server error"}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
