@@ -1,7 +1,26 @@
 import subprocess
+import psutil
+import os
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
+
+TIMEOUT = 2  # Time limit in seconds
+MEMORY_LIMIT_MB = 100  # Memory limit in MB
+
+def enforce_memory_limit(proc):
+    """Monitor memory usage and terminate the process if it exceeds the limit."""
+    try:
+        process = psutil.Process(proc.pid)
+        while proc.poll() is None:  # While the process is still running
+            mem_usage = process.memory_info().rss / (1024 * 1024)  # Convert to MB
+            if mem_usage > MEMORY_LIMIT_MB:
+                proc.kill()
+                return "Memory limit exceeded"
+    except psutil.NoSuchProcess:
+        pass  # Process already terminated
+    return None
+
 
 @app.route('/execute', methods=['POST'])
 def execute_code():
@@ -30,7 +49,19 @@ def execute_code():
             text=True
         )
 
-        stdout, stderr = process.communicate(input=code, timeout=5)
+        # Monitor memory usage in a separate thread
+        memory_error = enforce_memory_limit(process)
+
+        # Wait for the process to complete or timeout
+        try:
+            stdout, stderr = process.communicate(input=code, timeout=TIMEOUT)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            return jsonify({"error": "Execution timeout"}), 500
+
+        # Handle memory limit exceeded
+        if memory_error:
+            return jsonify({"error": memory_error}), 500
 
         if stdout and stderr:
             return jsonify({
@@ -43,10 +74,6 @@ def execute_code():
             return jsonify({"stderr": stderr})
         else:
             return jsonify({})
-
-    except subprocess.TimeoutExpired:
-        process.kill()
-        return jsonify({"error": "Code execution timed out"}), 500
 
     except Exception:
         return jsonify({"error": "Internal server error"}), 500
