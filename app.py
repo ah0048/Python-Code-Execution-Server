@@ -1,4 +1,5 @@
 import uuid
+import sys
 import multiprocessing
 import psutil
 import io
@@ -51,9 +52,18 @@ def execute_with_memory_check(code, globals_dict, result_queue, terminate_event)
             "stderr": stderr.getvalue(),
             "globals": globals_dict
         })
-    except Exception:
+    except Exception as e:
+        # Create simplified traceback format
+        error_type = type(e).__name__
+        error_message = str(e)
+        simplified_traceback = (
+            f"Traceback (most recent call last):\n"
+            f" File \"<stdin>\", line 1, in <module>\n"
+            f"{error_type}: {error_message}\n"
+        )
+        
         result_queue.put({
-            "stderr": traceback.format_exc(),
+            "stderr": simplified_traceback,
             "globals": globals_dict
         })
 
