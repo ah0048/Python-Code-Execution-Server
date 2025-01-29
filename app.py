@@ -75,8 +75,14 @@ MEMORY_LIMIT_MB: int = 100  # Memory limit in MB
 
 # Security-critical set of restricted modules
 RESTRICTED_MODULES: Set[str] = {
-    "os", "sys", "socket", "subprocess", 
-    "shutil", "pathlib", "open"
+    # Filesystem
+    "os", "sys", "shutil", "pathlib", "tempfile",
+    # Networking
+    "socket", "http", "urllib", "ssl", "requests", "ftplib",
+    # System
+    "subprocess", "multiprocessing", "ctypes",
+    # Other
+    "builtins", "sysconfig"
 }
 
 def restricted_import(
@@ -129,7 +135,9 @@ def restricted_environment() -> Dict[str, Any]:
         # Custom restricted import
         "__import__": restricted_import
     }
-    return {"__builtins__": safe_builtins}
+    return {
+        "__builtins__": safe_builtins
+        }
 
 def execute_with_memory_check(
     code: str,

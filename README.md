@@ -57,7 +57,7 @@ The server will start at:
 
 ---
 
-## 🔥 API Usage (For Developers)  
+## API Usage 
 
 ### **🔹 Execute Python Code**  
 📌 **Endpoint:**  
@@ -151,38 +151,6 @@ a = " " * 1024 * 1024 * 200  # Allocate 200MB
 🔹 **File System & Network Access Blocked**  
 🔹 **No Support for Asynchronous Execution (`async` functions may not work properly)**  
 🔹 **Cannot Execute Multi-Threaded Code (`threading` is blocked)**  
-
----
-
-## 🛄 Submission Instructions  
-
-📌 **Submission Email:**  
-Send a ZIP file containing the project to:  
-💎 `dev@namaaconsult.com`  
-
-📌 **Email Subject Format:**  
-```
-{FIRST NAME} {LAST NAME} - Backend Challenge Solution
-Example: Ahmed Mohamed - Backend Challenge Solution
-```
-
-📌 **ZIP File Contents:**  
-```
-Python-Code-Execution-Server/
-├── app.py
-├── templates/
-│   └── index.html
-├── README.md
-├── requirements.txt
-```
-
----
-
-## ✅ Evaluation Criteria  
-
-1️⃣ **Correctness:** Does the server execute code correctly & enforce limits?  
-2️⃣ **Code Quality:** Is the code well-structured, readable, and documented?  
-3️⃣ **Performance:** Does execution complete within a reasonable time?  
 
 ---
 
