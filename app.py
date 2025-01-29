@@ -4,33 +4,34 @@ import multiprocessing
 import psutil
 import io
 import traceback
-from flask import Flask, request, jsonify
-from contextlib import redirect_stdout, redirect_stderr
 import threading
 import logging
+from flask import Flask, request, jsonify
+from contextlib import redirect_stdout, redirect_stderr
+from typing import Dict, Any
 
-# Configure logging
+# Configure logging for debugging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
 # Dictionary to store session data
-sessions = {}
-TIMEOUT = 2  # Time limit in seconds
-MEMORY_LIMIT_MB = 100  # Memory limit in MB
+sessions: Dict[str, Dict[str, Any]] = {}
+TIMEOUT: int = 2  # Time limit in seconds
+MEMORY_LIMIT_MB: int = 100  # Memory limit in MB
 
-# 🚨 List of restricted modules 🚨
+# List of restricted modules to prevent unauthorized access
 RESTRICTED_MODULES = {"os", "sys", "socket", "subprocess", "shutil", "pathlib", "open"}
 
-def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
+def restricted_import(name: str, globals=None, locals=None, fromlist=(), level=0):
     """Custom import function that blocks restricted modules."""
     if name in RESTRICTED_MODULES:
         raise PermissionError(f"Importing '{name}' is restricted.")
     return __builtins__["__import__"](name, globals, locals, fromlist, level)
 
-def restricted_environment():
-    """Return a restricted execution environment."""
+def restricted_environment() -> Dict[str, Any]:
+    """Return a restricted execution environment with limited built-ins."""
     return {
         "__builtins__": {
             "abs": abs, "all": all, "any": any, "bin": bin, "bool": bool, "chr": chr,
@@ -44,9 +45,8 @@ def restricted_environment():
         }
     }
 
-def execute_with_memory_check(code, globals_dict, result_queue, terminate_event):
+def execute_with_memory_check(code: str, globals_dict: Dict[str, Any], result_queue: multiprocessing.Queue, terminate_event: multiprocessing.Event) -> None:
     """Execute code in a session with memory monitoring."""
-
     def monitor_memory():
         """Monitor memory usage and terminate if limit is exceeded."""
         try:
@@ -96,6 +96,7 @@ def execute_with_memory_check(code, globals_dict, result_queue, terminate_event)
 
 @app.route('/execute', methods=['POST'])
 def execute_code():
+    """API endpoint to execute Python code in a controlled environment."""
     data = request.get_json(silent=True)
     if data is None:
         return jsonify({"error": "Invalid JSON payload"}), 400
@@ -132,25 +133,24 @@ def execute_code():
     # Check if timeout occurred
     if process.is_alive():
         logger.error("Execution timeout. Terminating session.")
-        terminate_event.set()  # Signal to terminate the process
-        process.terminate()  # Terminate the child process
+        terminate_event.set()
+        process.terminate()
         del sessions[session_id]
         return jsonify({"id": session_id, "error": "Execution timeout. Session terminated."}), 500
 
-    # Check if the terminate event was set by the memory monitor
+    # Check if memory limit was exceeded
     if terminate_event.is_set():
         logger.warning("Memory limit exceeded. Terminating session.")
-        process.terminate()  # Terminate the child process if memory limit was exceeded
+        process.terminate()
         del sessions[session_id]
         return jsonify({"id": session_id, "error": "Memory limit exceeded. Session terminated."}), 500
 
-    # Get results from the queue
+    # Get execution results
     if not result_queue.empty():
         result = result_queue.get()
         if "error" in result:
             del sessions[session_id]
             return jsonify({"id": session_id, "error": result["error"]}), 500
-        # Update the session's globals with the returned globals
         sessions[session_id]["globals"] = result.get("globals", globals_dict)
         if "stderr" in result and result["stderr"]:
             return jsonify({"id": session_id, "stderr": result["stderr"]})
