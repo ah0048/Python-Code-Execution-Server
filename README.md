@@ -21,7 +21,7 @@ Ensure you have **Python 3.8+** installed.
 
 📌 clone the repo:  
 ```sh
-clone https://github.com/ah0048/Python-Code-Execution-Server
+git clone https://github.com/ah0048/Python-Code-Execution-Server
 cd Python-Code-Execution-Server
 ```
 
