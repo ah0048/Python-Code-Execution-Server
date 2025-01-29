@@ -20,9 +20,33 @@ sessions = {}
 TIMEOUT = 2  # Time limit in seconds
 MEMORY_LIMIT_MB = 100  # Memory limit in MB
 
+# 🚨 List of restricted modules 🚨
+RESTRICTED_MODULES = {"os", "sys", "socket", "subprocess", "shutil", "pathlib", "open"}
+
+def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
+    """Custom import function that blocks restricted modules."""
+    if name in RESTRICTED_MODULES:
+        raise PermissionError(f"Importing '{name}' is restricted.")
+    return __builtins__["__import__"](name, globals, locals, fromlist, level)
+
+def restricted_environment():
+    """Return a restricted execution environment."""
+    return {
+        "__builtins__": {
+            "abs": abs, "all": all, "any": any, "bin": bin, "bool": bool, "chr": chr,
+            "divmod": divmod, "enumerate": enumerate, "filter": filter, "float": float,
+            "format": format, "hash": hash, "hex": hex, "int": int, "isinstance": isinstance,
+            "issubclass": issubclass, "len": len, "list": list, "map": map, "max": max,
+            "min": min, "next": next, "pow": pow, "range": range, "repr": repr, "reversed": reversed,
+            "round": round, "set": set, "slice": slice, "sorted": sorted, "str": str,
+            "sum": sum, "tuple": tuple, "zip": zip, "print": print,
+            "__import__": restricted_import  # Override import to block restricted modules
+        }
+    }
 
 def execute_with_memory_check(code, globals_dict, result_queue, terminate_event):
     """Execute code in a session with memory monitoring."""
+
     def monitor_memory():
         """Monitor memory usage and terminate if limit is exceeded."""
         try:
@@ -61,7 +85,6 @@ def execute_with_memory_check(code, globals_dict, result_queue, terminate_event)
             f" File \"<stdin>\", line 1, in <module>\n"
             f"{error_type}: {error_message}\n"
         )
-        
         result_queue.put({
             "stderr": simplified_traceback,
             "globals": globals_dict
@@ -70,7 +93,6 @@ def execute_with_memory_check(code, globals_dict, result_queue, terminate_event)
     # Check if terminate event is set (due to memory limit)
     if terminate_event.is_set():
         logger.warning("Process was terminated due to memory limit.")
-
 
 @app.route('/execute', methods=['POST'])
 def execute_code():
@@ -87,11 +109,10 @@ def execute_code():
     # Handle new session creation
     if session_id is None:
         session_id = str(uuid.uuid4())
-        globals_dict = {"__name__": "__main__"}
+        globals_dict = restricted_environment()  # Use restricted environment
         result_queue = multiprocessing.Queue()
         terminate_event = multiprocessing.Event()
         sessions[session_id] = {"globals": globals_dict, "queue": result_queue, "terminate_event": terminate_event}
-        return jsonify({"id": session_id})
 
     # Handle existing session
     if session_id not in sessions:
@@ -138,7 +159,6 @@ def execute_code():
     # If no output is captured, delete the session
     del sessions[session_id]
     return jsonify({"id": session_id, "error": "Unexpected error. Session terminated."}), 500
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
