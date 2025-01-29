@@ -17,25 +17,36 @@ This project provides a **secure web-based Python execution server** with sandbo
 ### **1️⃣ Installation**  
 
 #### **🔹 Prerequisites**  
-Ensure you have **Python 3.8+** installed.  
+Ensure you have **Python 3.8+** installed. 
+
+📌 clone the repo:  
+```sh
+clone https://github.com/ah0048/Python-Code-Execution-Server
+cd Python-Code-Execution-Server
+```
+
+📌 activate the virtual environment:
+
+- On Linux/macOS:
+```sh
+source venv/bin/activate
+```
+- On Windows:
+```sh
+venv\Scripts\activate
+```
 
 📌 Install dependencies:  
 ```sh
 pip install -r requirements.txt
 ```
-
-#### **🔹 Install `psutil` (For Memory Monitoring)**  
-```sh
-pip install psutil
-```
-
 ---
 
 ### **2️⃣ Running the Server**  
 
 #### **🔹 On Linux / Mac**  
 ```sh
-python app.py
+python3 app.py
 ```
 
 #### **🔹 On Windows (Command Prompt / PowerShell)**  
@@ -165,7 +176,5 @@ a = " " * 1024 * 1024 * 200  # Allocate 200MB
 💡 **Future Improvements:**  
 - Add **Docker support** for stricter sandboxing  
 - Implement **rate limiting** to prevent abuse  
-- Support **async execution**  
-
-🚀 **Built for secure Python execution!**  
-
+- Support **async execution and classes build**
+  
