@@ -39,7 +39,6 @@ import sys
 import multiprocessing
 import psutil
 import io
-import traceback
 import threading
 import logging
 from flask import Flask, render_template, request, jsonify
@@ -80,7 +79,7 @@ RESTRICTED_MODULES: Set[str] = {
     # Networking
     "socket", "http", "urllib", "ssl", "requests", "ftplib",
     # System
-    "subprocess", "multiprocessing", "ctypes",
+    "subprocess", "multiprocessing", "ctypes", "threading"
     # Other
     "builtins", "sysconfig"
 }
