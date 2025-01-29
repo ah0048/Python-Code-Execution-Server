@@ -25,6 +25,17 @@ clone https://github.com/ah0048/Python-Code-Execution-Server
 cd Python-Code-Execution-Server
 ```
 
+📌 create a virtual environment:
+
+- On Linux/macOS:
+```sh
+python3 -m venv venv
+```
+- On Windows:
+```sh
+python -m venv venv
+```
+
 📌 activate the virtual environment:
 
 - On Linux/macOS:
