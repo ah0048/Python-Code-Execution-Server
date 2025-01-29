@@ -57,12 +57,12 @@ pip install -r requirements.txt
 
 #### **🔹 On Linux / Mac**  
 ```sh
-python3 app.py
+python3 run.py
 ```
 
 #### **🔹 On Windows (Command Prompt / PowerShell)**  
 ```sh
-python app.py
+python run.py
 ```
 
 The server will start at:  
